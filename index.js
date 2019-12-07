@@ -19,7 +19,7 @@ var url = require('url')
 
 var noop = function () {}
 var toMap = function (url) {
-  return typeof url === 'string' ? {url: url} : url
+  return typeof url === 'string' ? { url: url } : url
 }
 var toSubtitles = function (url, i) {
   if (typeof url !== 'string') return url
@@ -38,7 +38,7 @@ module.exports = function () {
   var dns = mdns()
   var that = new events.EventEmitter()
   var casts = {}
-  var ssdp = SSDP ? new SSDP({logLevel: process.env.DEBUG ? 'trace' : false}) : null
+  var ssdp = SSDP ? new SSDP({ logLevel: process.env.DEBUG ? 'trace' : false }) : null
 
   that.players = []
 
@@ -124,6 +124,84 @@ module.exports = function () {
       connectClient(function (err, client) {
         if (err) return cb(err)
         client.getStatus(cb)
+      })
+    }
+
+    player.playQueue = function (items, opts, cb) {
+      if (!Array.isArray(items)) return cb(new TypeError('items must be an array'), null)
+      if (!opts) opts = {}
+      if (!cb) cb = noop
+      connect(function (err, p) {
+        if (err) return cb(err)
+
+        var queue = items.map(function (item) {
+          return {
+            media: {
+              contentId: typeof item === 'string' ? item : item.url,
+              contentType: item.opts ? item.opts.type : mime.lookup(typeof item === 'string' ? item : item.url, 'video/mp4'),
+              streamType: item.opts ? item.opts.streamType : 'BUFFERED',
+              tracks: [].concat(item.opts ? item.opts.subtitles : []).map(toSubtitles),
+              textTrackStyle: item.opts ? item.opts.textTrackStyle : undefined,
+              metadata: item.opts ? item.opts.metadata : {
+                type: 0,
+                metadataType: 0,
+                title: item.opts ? item.opts.title : '',
+                images: [].concat(item.opts ? item.opts.images : []).map(toMap)
+              }
+            }
+          }
+        })
+
+        var playerOptions = {
+          autoplay: opts.autoPlay !== false,
+          startIndex: opts.startIndex || 0,
+          preloadTime: opts.preloadTime || 10
+        }
+
+        p.queueLoad(queue, playerOptions, cb)
+      })
+    }
+
+    player.insertItemsIntoQueue = function (items, opts, cb) {
+      if (!Array.isArray(items)) return cb(new TypeError('items must be an array'), null)
+      if (!opts) opts = {}
+      if (!cb) cb = noop
+      connect(function (err, p) {
+        if (err) return cb(err)
+
+        var queue = items.map(function (item) {
+          return {
+            media: {
+              contentId: typeof item === 'string' ? item : item.url,
+              contentType: item.opts ? item.opts.type : mime.lookup(typeof item === 'string' ? item : item.url, 'video/mp4'),
+              streamType: item.opts ? item.opts.streamType : 'BUFFERED',
+              tracks: [].concat(item.opts ? item.opts.subtitles : []).map(toSubtitles),
+              textTrackStyle: item.opts ? item.opts.textTrackStyle : undefined,
+              metadata: item.opts ? item.opts.metadata : {
+                type: 0,
+                metadataType: 0,
+                title: item.opts ? item.opts.title : '',
+                images: [].concat(item.opts ? item.opts.images : []).map(toMap)
+              }
+            }
+          }
+        })
+
+        var playerOptions = {
+          insertBefore: opts.insertBefore
+        }
+
+        p.queueInsert(queue, playerOptions, cb)
+      })
+    }
+
+    player.removeItemsFromQueue = function (itemIds, cb) {
+      if (!Array.isArray(itemIds)) return cb(new TypeError('itemIds must be array'), null)
+      if (!cb) cb = noop
+      connect(function (err, p) {
+        if (err) return cb(err)
+
+        p.queueRemove(itemIds, cb)
       })
     }
 
@@ -243,7 +321,7 @@ module.exports = function () {
       if (a.type === 'PTR' && a.name === '_googlecast._tcp.local') {
         var name = a.data
         var shortname = a.data.replace('._googlecast._tcp.local', '')
-        if (!casts[name]) casts[name] = {name: shortname, host: null}
+        if (!casts[name]) casts[name] = { name: shortname, host: null }
       }
     })
 
@@ -275,7 +353,7 @@ module.exports = function () {
 
       get.concat(headers.LOCATION, function (err, res, body) {
         if (err) return
-        parseString(body.toString(), {explicitArray: false, explicitRoot: false},
+        parseString(body.toString(), { explicitArray: false, explicitRoot: false },
           function (err, service) {
             if (err) return
             if (!service.device) return
@@ -290,7 +368,7 @@ module.exports = function () {
             var host = url.parse(service.URLBase).hostname
 
             if (!casts[name]) {
-              casts[name] = {name: name, host: host}
+              casts[name] = { name: name, host: host }
               return emit(casts[name])
             }
 

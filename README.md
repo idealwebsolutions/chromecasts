@@ -47,6 +47,18 @@ Make the player play a url. Options include:
 }
 ```
 
+#### `player.playQueue(queue, [opts], cb)`
+
+Creates an ordered queue that plays a list of urls from beginning to end
+
+#### `player.insertItemsIntoQueue(queue, [opts], cb)`
+
+Same as `.playQueue` except can be added by position using `opts.insertBefore` with a specified item id. If omitted,, items are appended to end of queue
+
+#### `player.removeItemsFromQueue(itemIds, cb)`
+
+Removes items from queue specified by their id. Item ids in the queue can be obtained by using `player.status`
+
 #### `player.subtitles(track, [cb])`
 
 Enable subtitle track. Use `player.subtitles(false)` to disable subtitles
