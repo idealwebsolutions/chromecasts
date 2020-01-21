@@ -171,18 +171,19 @@ module.exports = function () {
         if (err) return cb(err)
 
         var queue = items.map(function (item) {
+          if (!item.opts) item.opts = {}
           return {
             media: {
               contentId: typeof item === 'string' ? item : item.url,
-              contentType: item.opts ? item.opts.type : mime.lookup(typeof item === 'string' ? item : item.url, 'video/mp4'),
-              streamType: item.opts ? item.opts.streamType : 'BUFFERED',
-              tracks: [].concat(item.opts ? item.opts.subtitles : []).map(toSubtitles),
-              textTrackStyle: item.opts ? item.opts.textTrackStyle : undefined,
-              metadata: item.opts ? item.opts.metadata : {
+              contentType: item.opts.type || mime.lookup(typeof item === 'string' ? item : item.url, 'video/mp4'),
+              streamType: item.opts.streamType || 'BUFFERED',
+              tracks: [].concat(item.opts.subtitles || []).map(toSubtitles),
+              textTrackStyle: item.opts.textTrackStyle,
+              metadata: item.opts.metadata || {
                 type: 0,
                 metadataType: 0,
-                title: item.opts ? item.opts.title : '',
-                images: [].concat(item.opts ? item.opts.images : []).map(toMap)
+                title: item.opts.title || '',
+                images: [].concat(item.opts.images || []).map(toMap)
               }
             }
           }
